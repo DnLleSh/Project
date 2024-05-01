@@ -46,21 +46,21 @@ async def end(update, context):
     try:
         format = "%d.%m.%Y-%H:%M"
         dt.datetime.strptime(time, format)
+ 
+        name = context.user_data['name']
+        text = context.user_data['text']
 
         con = sqlite3.connect("tg_bot.db")
         cur = con.cursor()
-        cur.execute(f"INSERT INTO mes(name, reminder, date) VALUES('{context.user_data['name']}', '{context.user_data['text']}', '{time}')").fetchall()
+        cur.execute(f"INSERT INTO mes(name, reminder, date, id) VALUES('{name}', '{text}', '{time}', {3})").fetchall()
         con.commit()
         con.close()
 
         await update.message.reply_text("Напоминание добавлено. Всего доброго!")
 
-        time = time.split('-')[1]   
-        name = context.user_data['name']
-        text = context.user_data['text']
-        
-        command = f'echo /bin/python3 ./sender.py {update.effective_chat.id} {name} {text} | at {time}'
-        subprocess.run(command, shell=True, executable='/bin/bash')
+        time = time.split('-')[1]
+        command = f"echo /bin/python3 ./sender.py {update.effective_chat.id} {name} {text} | at {time}"
+        subprocess.run(command, shell=True, executable='/bin/bash', text=True, input=f"{name}:\n{text}")
 
         return ConversationHandler.END
     
