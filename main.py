@@ -11,20 +11,8 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-def remove_job_if_exists(name, context):
-    current_jobs = context.job_queue.get_jobs_by_name(name)
-    if not current_jobs:
-        return False
-    for job in current_jobs:
-        job.schedule_removal()
-    return True
-
-async def echo(update, context):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text='привет')
-
 async def help(update, context):
     text = 'Для добавления напоминания введите /set'
-
     await update.message.reply_text(text)
 
 async def create_reminder(update, context):
@@ -53,10 +41,10 @@ async def set_reminder_time(update, context):
     return 3
 
 async def end(update, context):
-    format = "%d.%m.%Y-%H:%M"
     time = update.message.text
 
     try:
+        format = "%d.%m.%Y-%H:%M"
         dt.datetime.strptime(time, format)
 
         con = sqlite3.connect("tg_bot.db")
@@ -93,9 +81,6 @@ async def end(update, context):
     # mm, ss = divmod(delta.seconds, 60)
     # hh, mm = divmod(mm, 60)
     # s = "%02d:%02d" % (hh, mm)
-
-async def task(context):
-    await context.bot.send_message(context.job.chat_id, text='КУКУ!')
 
 async def all_reminders(update, context):
     con = sqlite3.connect("tg_bot.db")
@@ -142,30 +127,19 @@ def main():
     application = Application.builder().token('6619796610:AAHWGamh5RvpLS3vL8GYhoOTok5-S6R3udY').build()
 
     conv_handler = ConversationHandler(
-        # Точка входа в диалог.
-        # В данном случае — команда /start. Она задаёт первый вопрос.
         entry_points=[CommandHandler('start', create_reminder)],
 
-        # Состояние внутри диалога.
         states={
-            0: [MessageHandler(filters.TEXT & ~filters.COMMAND, create_reminder)],
-            # Функция читает ответ на первый вопрос и задаёт второй.
             1: [MessageHandler(filters.TEXT & ~filters.COMMAND, set_reminder_text)],
-            # Функция читает ответ на второй вопрос и задает третий.
             2: [MessageHandler(filters.TEXT & ~filters.COMMAND, set_reminder_time)],
-            # Функция читает ответ на третий вопрос.
             3: [MessageHandler(filters.TEXT & ~filters.COMMAND, end)],
         },
 
-        # Точка прерывания диалога. В данном случае — команда /stop.
         fallbacks=[CommandHandler('stop', stop)]
     )
 
     application.add_handler(conv_handler)
-
-    text_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, echo)
     
-    application.add_handler(text_handler)
     application.add_handler(CommandHandler("set", set))
     application.add_handler(CommandHandler("give_all", all_reminders))
     application.add_handler(CommandHandler("give", one_reminder))
